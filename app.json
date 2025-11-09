@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "vida-between-mobile",
-    "slug": "vida-between-mobile",
+    "name": "Vida Between",
+    "slug": "vida-between",
     "version": "1.0.0",
+    "scheme": "vida-between",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
