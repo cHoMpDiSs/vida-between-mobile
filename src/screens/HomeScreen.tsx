@@ -8,6 +8,16 @@ import {
   SafeAreaView,
   RefreshControl,
 } from 'react-native';
+import {
+  Baby,
+  MessageCircle,
+  Milk,
+  Sparkles,
+  ChevronRight,
+  LogOut,
+  Users,
+  Shield,
+} from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { Group } from '../types';
@@ -17,6 +27,23 @@ export default function HomeScreen() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const getGroupIcon = (groupName: string) => {
+    const name = groupName.toLowerCase();
+    const iconSize = 28;
+    const iconColor = '#667EEA';
+    
+    if (name.includes('pregnancy')) {
+      return <Baby size={iconSize} color={iconColor} />;
+    }
+    if (name.includes('newborn') || name.includes('toddler')) {
+      return <Baby size={iconSize} color={iconColor} />;
+    }
+    if (name.includes('breastfeeding') || name.includes('feeding')) {
+      return <Milk size={iconSize} color={iconColor} />;
+    }
+    return <MessageCircle size={iconSize} color={iconColor} />;
+  };
 
   useEffect(() => {
     loadGroups();
@@ -81,13 +108,16 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={signOut} style={styles.signOutButton}>
+          <LogOut size={16} color="#DC3545" style={{ marginRight: 4 }} />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.header}>
-        <Text style={styles.greeting}>
-          Welcome, {user?.full_name}! 👋
-        </Text>
+        <View style={styles.greetingContainer}>
+          <Text style={styles.greeting}>
+            Welcome, {user?.full_name}!
+          </Text>
+        </View>
         <Text style={styles.subtitle}>
           Connect with mothers who understand
         </Text>
@@ -119,9 +149,7 @@ export default function HomeScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.groupIcon}>
-                  <Text style={styles.groupEmoji}>
-                    {getGroupEmoji(group.name)}
-                  </Text>
+                  {getGroupIcon(group.name)}
                 </View>
                 <View style={styles.groupInfo}>
                   <Text style={styles.groupName}>{group.name}</Text>
@@ -130,7 +158,8 @@ export default function HomeScreen() {
                   </Text>
                 </View>
                 <View style={styles.joinButton}>
-                  <Text style={styles.joinButtonText}>Join →</Text>
+                  <Text style={styles.joinButtonText}>Join</Text>
+                  <ChevronRight size={16} color="#667EEA" />
                 </View>
               </TouchableOpacity>
             ))}
@@ -138,7 +167,10 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Your Safe Space</Text>
+          <View style={styles.cardHeader}>
+            <Shield size={20} color="#667EEA" style={{ marginRight: 8 }} />
+            <Text style={styles.infoTitle}>Your Safe Space</Text>
+          </View>
           <Text style={styles.infoText}>
             Share experiences, ask questions, and find support from a community
             of mothers. All conversations are private and respectful.
@@ -147,7 +179,10 @@ export default function HomeScreen() {
 
         {user?.subscription_tier === 'free' && (
           <View style={styles.premiumCard}>
-            <Text style={styles.premiumTitle}>✨ Go Premium</Text>
+            <View style={styles.cardHeader}>
+              <Sparkles size={20} color="#FFC107" style={{ marginRight: 8 }} />
+              <Text style={styles.premiumTitle}>Go Premium</Text>
+            </View>
             <Text style={styles.premiumText}>
               Unlock unlimited groups, remove message limits, and access
               exclusive content.
@@ -160,14 +195,6 @@ export default function HomeScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-}
-
-function getGroupEmoji(groupName: string): string {
-  const name = groupName.toLowerCase();
-  if (name.includes('pregnancy')) return '🤰';
-  if (name.includes('newborn') || name.includes('toddler')) return '👶';
-  if (name.includes('breastfeeding') || name.includes('feeding')) return '🍼';
-  return '💬';
 }
 
 const styles = StyleSheet.create({
@@ -202,6 +229,12 @@ const styles = StyleSheet.create({
   signOutButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  greetingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   signOutText: {
     color: '#DC3545',
@@ -257,9 +290,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 15,
   },
-  groupEmoji: {
-    fontSize: 32,
-  },
   groupInfo: {
     flex: 1,
   },
@@ -277,11 +307,18 @@ const styles = StyleSheet.create({
   joinButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   joinButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#667EEA',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   infoCard: {
     backgroundColor: '#E7F5FF',

@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
+import { Mail, Lock, User, Loader2 } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
@@ -76,35 +77,47 @@ export default function AuthScreen() {
 
         <View style={styles.form}>
           {isSignUp && (
+            <View style={styles.inputContainer}>
+              <User size={20} color="#6C757D" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Full Name"
+                value={fullName}
+                onChangeText={setFullName}
+                autoCapitalize="words"
+              />
+            </View>
+          )}
+          <View style={styles.inputContainer}>
+            <Mail size={20} color="#6C757D" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Full Name"
-              value={fullName}
-              onChangeText={setFullName}
-              autoCapitalize="words"
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
             />
-          )}
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          </View>
+          <View style={styles.inputContainer}>
+            <Lock size={20} color="#6C757D" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+          </View>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleEmailAuth}
             disabled={loading}
           >
+            {loading ? (
+              <Loader2 size={20} color="#fff" style={{ marginRight: 8 }} />
+            ) : null}
             <Text style={styles.buttonText}>
               {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
             </Text>
@@ -172,12 +185,21 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
   },
-  input: {
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 15,
     marginBottom: 15,
+    paddingHorizontal: 15,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 15,
     fontSize: 16,
   },
   button: {
@@ -186,6 +208,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   buttonDisabled: {
     opacity: 0.5,
