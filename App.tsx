@@ -1,6 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import AuthScreen from './src/screens/AuthScreen';
 import TabNavigator from './src/navigation/TabNavigator';
@@ -18,13 +17,7 @@ function AppContent() {
 
   return (
     <>
-      {user ? (
-        <NavigationContainer>
-          <TabNavigator />
-        </NavigationContainer>
-      ) : (
-        <AuthScreen />
-      )}
+      {user ? <TabNavigator /> : <AuthScreen />}
       <StatusBar style="auto" />
     </>
   );

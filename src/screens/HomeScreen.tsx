@@ -19,11 +19,13 @@ import {
   Shield,
 } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '../navigation/NavigationContext';
 import { supabase } from '../config/supabase';
 import { Group } from '../types';
 
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
+  const { navigateToChat } = useNavigation();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,34 +75,49 @@ export default function HomeScreen() {
   };
 
   const handleJoinGroup = async (groupId: string) => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user, cannot join group');
+      return;
+    }
+
+    const group = groups.find((g) => g.id === groupId);
+    const groupName = group?.name || 'Group';
 
     try {
       // Check if already joined
-      const { data: existing } = await supabase
+      const { data: existing, error: checkError } = await supabase
         .from('user_groups')
         .select('id')
         .eq('user_id', user.id)
         .eq('group_id', groupId)
-        .single();
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 is "no rows returned" which is fine
+        throw checkError;
+      }
 
       if (existing) {
-        // Already joined - navigate to chat (to be implemented)
-        console.log('Already in group, navigate to chat');
+        // Already joined - navigate to chat
+        console.log('Already joined, navigating to chat:', groupId, groupName);
+        navigateToChat(groupId, groupName);
         return;
       }
 
       // Join the group
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('user_groups')
         .insert({ user_id: user.id, group_id: groupId });
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
-      // Navigate to chat (to be implemented)
-      console.log('Joined group, navigate to chat');
+      // Navigate to chat after joining
+      console.log('Joined group, navigating to chat:', groupId, groupName);
+      navigateToChat(groupId, groupName);
     } catch (error) {
       console.error('Error joining group:', error);
+      // Still try to navigate even if there's an error (user might already be in group)
+      navigateToChat(groupId, groupName);
     }
   };
 

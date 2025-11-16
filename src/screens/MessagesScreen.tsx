@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,47 +7,124 @@ import {
   TouchableOpacity,
   TextInput,
   SafeAreaView,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { MessageCircle, Search, Send } from 'lucide-react-native';
+import { MessageCircle, Search } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '../navigation/NavigationContext';
+import { supabase } from '../config/supabase';
+import { Group, Message } from '../types';
 
 interface Conversation {
   id: string;
+  groupId: string;
   name: string;
   lastMessage: string;
   timestamp: string;
   unreadCount: number;
-  avatar?: string;
 }
 
 export default function MessagesScreen() {
   const { user } = useAuth();
+  const { navigateToChat } = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Mock conversations - replace with real data from Supabase
-  const [conversations] = useState<Conversation[]>([
-    {
-      id: '1',
-      name: 'Pregnancy Support Group',
-      lastMessage: 'Thanks for sharing that!',
-      timestamp: '2h ago',
-      unreadCount: 2,
-    },
-    {
-      id: '2',
-      name: 'Newborn Care',
-      lastMessage: 'Has anyone tried this?',
-      timestamp: '1d ago',
-      unreadCount: 0,
-    },
-  ]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    loadConversations();
+  }, [user]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadConversations();
+    setRefreshing(false);
+  }, [user]);
+
+  const loadConversations = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Get groups the user has joined
+      const { data: userGroups, error: userGroupsError } = await supabase
+        .from('user_groups')
+        .select('group_id, groups(*)')
+        .eq('user_id', user.id);
+
+      if (userGroupsError) throw userGroupsError;
+
+      // Get last message for each group
+      const conversationsData: Conversation[] = await Promise.all(
+        (userGroups || []).map(async (ug: any) => {
+          const group = ug.groups as Group;
+          
+          // Get last message
+          const { data: lastMessage } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('group_id', group.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          return {
+            id: group.id,
+            groupId: group.id,
+            name: group.name,
+            lastMessage: lastMessage?.content || 'No messages yet',
+            timestamp: lastMessage
+              ? formatTimestamp(lastMessage.created_at)
+              : 'No messages',
+            unreadCount: 0, // TODO: Implement unread count
+          };
+        })
+      );
+
+      // Sort by most recent message
+      conversationsData.sort((a, b) => {
+        if (a.timestamp === 'No messages') return 1;
+        if (b.timestamp === 'No messages') return -1;
+        return 0;
+      });
+
+      setConversations(conversationsData);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTimestamp = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
 
   const filteredConversations = conversations.filter((conv) =>
     conv.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderConversation = ({ item }: { item: Conversation }) => (
-    <TouchableOpacity style={styles.conversationItem} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.conversationItem}
+      activeOpacity={0.7}
+      onPress={() => navigateToChat(item.groupId, item.name)}
+    >
       <View style={styles.avatarContainer}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
@@ -90,7 +167,11 @@ export default function MessagesScreen() {
         />
       </View>
 
-      {filteredConversations.length === 0 ? (
+      {loading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" color="#667EEA" />
+        </View>
+      ) : filteredConversations.length === 0 ? (
         <View style={styles.emptyState}>
           <MessageCircle size={64} color="#E9ECEF" />
           <Text style={styles.emptyTitle}>No conversations yet</Text>
@@ -107,6 +188,9 @@ export default function MessagesScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         />
       )}
     </SafeAreaView>

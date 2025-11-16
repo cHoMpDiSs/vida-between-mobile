@@ -1,14 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Home, MessageCircle, User } from 'lucide-react-native';
 import HomeScreen from '../screens/HomeScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import ChatScreen from '../screens/ChatScreen';
+import { NavigationProvider } from './NavigationContext';
 
 export default function TabNavigator() {
   const [activeTab, setActiveTab] = useState('home');
+  const [chatScreen, setChatScreen] = useState<{ groupId: string; groupName: string } | null>(null);
+
+  const navigateToChat = (groupId: string, groupName: string) => {
+    setChatScreen({ groupId, groupName });
+  };
+
+  const goBack = () => {
+    setChatScreen(null);
+  };
 
   const renderScreen = () => {
+    if (chatScreen) {
+      return (
+        <ChatScreen
+          groupId={chatScreen.groupId}
+          groupName={chatScreen.groupName}
+          onBack={goBack}
+        />
+      );
+    }
+
     switch (activeTab) {
       case 'home':
         return <HomeScreen />;
@@ -22,9 +44,11 @@ export default function TabNavigator() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>{renderScreen()}</View>
-      <SafeAreaView style={styles.tabBar}>
+    <NavigationProvider value={{ navigateToChat, goBack }}>
+      <View style={styles.container}>
+        <View style={styles.content}>{renderScreen()}</View>
+        {!chatScreen && (
+          <SafeAreaView style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'home' && styles.activeTab]}
           onPress={() => setActiveTab('home')}
@@ -64,8 +88,10 @@ export default function TabNavigator() {
             Profile
           </Text>
         </TouchableOpacity>
-      </SafeAreaView>
-    </View>
+          </SafeAreaView>
+        )}
+      </View>
+    </NavigationProvider>
   );
 }
 
